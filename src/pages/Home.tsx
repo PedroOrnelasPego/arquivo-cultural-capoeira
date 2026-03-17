@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { API_BASE_URL, API_KEY } from '../config';
 
 import { categories } from '../data/mockData';
 import vinilPadrao from '../assets/vinil_padrao.png';
@@ -34,9 +35,9 @@ export default function Home() {
   useEffect(() => {
     const fetchAcervo = async () => {
       try {
-        const response = await fetch('http://localhost:3333/api/acervo', {
+        const response = await fetch(`${API_BASE_URL}/api/acervo`, {
           headers: {
-            'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+            'x-api-key': API_KEY
           }
         });
         if (response.ok) {

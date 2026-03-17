@@ -8,6 +8,7 @@ import {
 
 import { categories } from '../data/mockData';
 import vinilPadrao from '../assets/vinil_padrao.png';
+import { API_BASE_URL, API_KEY } from '../config';
 
 const FALLBACK_IMAGE = vinilPadrao;
 
@@ -22,9 +23,9 @@ export default function Dashboard() {
   const fetchAcervo = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3333/api/acervo', {
+      const response = await fetch(`${API_BASE_URL}/api/acervo`, {
         headers: {
-          'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          'x-api-key': API_KEY
         }
       });
       if (response.ok) {
@@ -295,10 +296,10 @@ export default function Dashboard() {
         formData.append('category', category);
         allFilesToUpload.forEach(f => formData.append('arquivos', f.original));
 
-        const uploadRes = await fetch('http://localhost:3333/api/uploads', {
+        const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
           method: 'POST',
           headers: {
-            'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+            'x-api-key': API_KEY
           },
           body: formData
         });
@@ -361,14 +362,14 @@ export default function Dashboard() {
       };
 
       // 3. ENVIAR PARA O COSMOS DB (POST ou PUT)
-      const url = editingId ? `http://localhost:3333/api/vinis/${editingId}` : 'http://localhost:3333/api/vinis';
+      const url = editingId ? `${API_BASE_URL}/api/vinis/${editingId}` : `${API_BASE_URL}/api/vinis`;
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          'x-api-key': API_KEY
         },
         body: JSON.stringify(payload)
       });
@@ -504,11 +505,11 @@ export default function Dashboard() {
     
     try {
       // 1. Deleta do Azure
-      const delRes = await fetch('http://localhost:3333/api/uploads', {
+      const delRes = await fetch(`${API_BASE_URL}/api/uploads`, {
         method: 'DELETE',
         headers: { 
           'Content-Type': 'application/json',
-          'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          'x-api-key': API_KEY
         },
         body: JSON.stringify({ url })
       });
@@ -551,11 +552,11 @@ export default function Dashboard() {
           updatePayload[fieldMap[field] || field] = null;
         }
 
-        const putRes = await fetch(`http://localhost:3333/api/vinis/${editingId}`, {
+        const putRes = await fetch(`${API_BASE_URL}/api/vinis/${editingId}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
-            'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+            'x-api-key': API_KEY
           },
           body: JSON.stringify(updatePayload)
         });
@@ -843,6 +844,19 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="md:col-span-2 flex items-center gap-3  p-4 rounded-2xl border border-emerald-100/50 mb-2">
+                    <label className="relative flex items-center cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={isRevised} 
+                        onChange={(e) => setIsRevised(e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                      <span className="ml-3 text-sm font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">Registro Revisado / Confirmado</span>
+                    </label>
+                  </div>
+
                   <div className="space-y-3">
                     <label className="text-sm font-bold text-slate-900">Categoria do Arquivo</label>
                     <div className="relative">
@@ -948,18 +962,6 @@ export default function Dashboard() {
                           >
                             +
                           </button>
-                        </div>
-                        <div className="flex items-center gap-3 pt-6">
-                          <label className="relative flex items-center cursor-pointer group">
-                            <input 
-                              type="checkbox" 
-                              checked={isRevised} 
-                              onChange={(e) => setIsRevised(e.target.checked)}
-                              className="sr-only peer" 
-                            />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                            <span className="ml-3 text-sm font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">Registro Revisado / Confirmado</span>
-                          </label>
                         </div>
                       </div>
                     </>

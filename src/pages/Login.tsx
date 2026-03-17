@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { msalInstance } from '../config/msalConfig';
 import React, { useState } from 'react';
+import { API_BASE_URL, API_KEY } from '../config';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -133,11 +134,11 @@ export default function Login() {
         body = { email, password };
       }
 
-      const response = await fetch(`http://localhost:3333${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-api-key': (import.meta as any).env.VITE_API_KEY || '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          'x-api-key': API_KEY
         },
         body: JSON.stringify(body)
       });

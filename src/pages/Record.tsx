@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { History, ChevronLeft, ChevronRight, Disc, Book, Music, Play, Pause, FileAudio, FileText, Info, LayoutDashboard } from 'lucide-react';
 import vinilPadrao from '../assets/vinil_padrao.png';
+import { API_BASE_URL, API_KEY } from '../config';
 
 const FALLBACK_IMAGE = vinilPadrao;
 
@@ -25,9 +26,9 @@ export default function Record() {
   useEffect(() => {
     const fetchRecord = async () => {
       try {
-        const response = await fetch('http://localhost:3333/api/acervo', {
+        const response = await fetch(`${API_BASE_URL}/api/acervo`, {
           headers: {
-            'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+            'x-api-key': API_KEY
           }
         });
         if (response.ok) {
