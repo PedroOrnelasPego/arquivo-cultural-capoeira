@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { History, ChevronLeft, ChevronRight, Disc, Book, Music, Play, Pause, FileAudio, FileText, Info } from 'lucide-react';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { History, ChevronLeft, ChevronRight, Disc, Book, Music, Play, Pause, FileAudio, FileText, Info, LayoutDashboard } from 'lucide-react';
 import vinilPadrao from '../assets/vinil_padrao.png';
 
 const FALLBACK_IMAGE = vinilPadrao;
@@ -10,11 +10,17 @@ export default function Record() {
   const [item, setItem] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const location = useLocation();
+  const isAdminView = location.pathname.startsWith('/admin');
+
   // FAKE STATE FOR PLAY BUTTON (ONLY UI DEMONSTRATION)
   const [playingTrackId, setPlayingTrackId] = useState<number | null>(null);
   
   // Carousel State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Modal State para Zoom
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchRecord = async () => {
@@ -89,18 +95,26 @@ export default function Record() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-display pb-24">
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors mb-8 bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md border border-slate-100">
-          <ChevronLeft className="w-4 h-4" />
-          Voltar para o Acervo
-        </Link>
+        {isAdminView ? (
+          <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary transition-colors mb-8 bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md border border-primary/20">
+            <LayoutDashboard className="w-4 h-4" />
+            Voltar para o Painel Administrativo
+          </Link>
+        ) : (
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors mb-8 bg-white px-5 py-2.5 rounded-full shadow-sm hover:shadow-md border border-slate-100">
+            <ChevronLeft className="w-4 h-4" />
+            Voltar para o Acervo
+          </Link>
+        )}
 
         {/* Hero Banner do Registro */}
-        <div className="bg-white rounded-[2rem] p-4 shadow-2xl shadow-slate-200/50 border border-slate-100 mb-8 overflow-hidden flex flex-col md:flex-row gap-8">
+        <div className="bg-white rounded-[2rem] p-4 shadow-2xl shadow-slate-200/50 border border-slate-100 mb-8 overflow-hidden flex flex-col md:flex-row items-center gap-8">
           <div className="w-full md:w-1/3 aspect-square rounded-[1.5rem] overflow-hidden relative shadow-lg group">
             <img 
               src={images[currentImageIndex] || item.image || FALLBACK_IMAGE} 
               alt={item.title} 
-              className="w-full h-full object-cover transition-opacity duration-500 ease-in-out" 
+              className="w-full h-full object-cover transition-opacity duration-500 ease-in-out cursor-zoom-in group-hover:scale-105 transition-transform duration-700" 
+              onClick={() => setIsModalOpen(true)}
             />
             
             <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold text-white uppercase tracking-widest border border-white/10 shadow-xl z-20">
@@ -207,14 +221,25 @@ export default function Record() {
                     {tracksA.map((track: any, index: number) => (
                       <div key={track.id} className="group flex items-center gap-4 p-3 pr-6 bg-slate-50/80 hover:bg-slate-100 rounded-2xl transition-colors border border-transparent hover:border-slate-200">
                         <button 
+                          disabled={!track.audioUrl}
                           onClick={() => setPlayingTrackId(playingTrackId === track.id ? null : track.id)}
                           className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                            playingTrackId === track.id 
-                            ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
-                            : 'bg-white text-primary shadow-sm group-hover:bg-primary group-hover:text-white'
+                            !track.audioUrl 
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                            : playingTrackId === track.id 
+                              ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
+                              : 'bg-white text-primary shadow-sm group-hover:bg-primary group-hover:text-white'
                           }`}
+                          title={!track.audioUrl ? "Áudio ainda não disponível para esta faixa" : "Ouvir faixa"}
                         >
-                          {playingTrackId === track.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
+                          {playingTrackId === track.id ? (
+                            <Pause className="w-5 h-5" />
+                          ) : (
+                            <div className="relative">
+                              <Play className="w-5 h-5 ml-1" />
+                              {!track.audioUrl && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-0.5 bg-slate-400 rotate-45"></div>}
+                            </div>
+                          )}
                         </button>
                         <div className="flex-1 min-w-0">
                           <h5 className={`font-bold truncate ${playingTrackId === track.id ? 'text-primary' : 'text-slate-800'}`}>{track.name || `Faixa ${index + 1}`}</h5>
@@ -238,14 +263,25 @@ export default function Record() {
                     {tracksB.map((track: any, index: number) => (
                       <div key={track.id} className="group flex items-center gap-4 p-3 pr-6 bg-slate-50/80 hover:bg-slate-100 rounded-2xl transition-colors border border-transparent hover:border-slate-200">
                         <button 
+                          disabled={!track.audioUrl}
                           onClick={() => setPlayingTrackId(playingTrackId === track.id ? null : track.id)}
                           className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                            playingTrackId === track.id 
-                            ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
-                            : 'bg-white text-primary shadow-sm group-hover:bg-primary group-hover:text-white'
+                            !track.audioUrl 
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                            : playingTrackId === track.id 
+                              ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
+                              : 'bg-white text-primary shadow-sm group-hover:bg-primary group-hover:text-white'
                           }`}
+                          title={!track.audioUrl ? "Áudio ainda não disponível para esta faixa" : "Ouvir faixa"}
                         >
-                          {playingTrackId === track.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
+                          {playingTrackId === track.id ? (
+                            <Pause className="w-5 h-5" />
+                          ) : (
+                            <div className="relative">
+                              <Play className="w-5 h-5 ml-1" />
+                              {!track.audioUrl && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-0.5 bg-slate-400 rotate-45"></div>}
+                            </div>
+                          )}
                         </button>
                         <div className="flex-1 min-w-0">
                           <h5 className={`font-bold truncate ${playingTrackId === track.id ? 'text-primary' : 'text-slate-800'}`}>{track.name || `Faixa Lado B ${index + 1}`}</h5>
@@ -266,6 +302,51 @@ export default function Record() {
         )}
 
       </main>
+
+      {/* Modal de Zoom da Imagem */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-300"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-xl"></div>
+          
+          <button 
+            onClick={() => setIsModalOpen(false)}
+            className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10 z-[110]"
+          >
+            <History className="w-6 h-6 rotate-45" /> {/* Usando History rotacionado ou X se eu importar */}
+          </button>
+
+          <img 
+            src={images[currentImageIndex] || item.image || FALLBACK_IMAGE} 
+            alt={item.title} 
+            className="relative z-[105] max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-500"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Atalho para trocar imagem dentro do modal se houver mais de uma */}
+          {images.length > 1 && (
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-6 z-[110]">
+              <button 
+                onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                className="w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+              <div className="text-white font-black text-lg tracking-widest bg-white/10 px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                {currentImageIndex + 1} / {images.length}
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                className="w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

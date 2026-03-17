@@ -182,8 +182,12 @@ export default function Home() {
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredItems.map(item => (
-              <div key={item.id} className="group bg-white dark:bg-white/5 flex flex-col rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/10 hover:shadow-[0_32px_64px_-16px_rgba(237,50,55,0.12)] transition-all duration-700 hover:-translate-y-2">
-                <div className="aspect-[5/4] overflow-hidden relative">
+              <div 
+                key={item.id} 
+                onClick={() => handleExplore(item.id)}
+                className="group bg-white dark:bg-white/5 flex flex-col rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/10 hover:shadow-[0_32px_64px_-16px_rgba(237,50,55,0.12)] transition-all duration-700 hover:-translate-y-2 cursor-pointer"
+              >
+                <div className="aspect-square overflow-hidden relative">
                   <img 
                     src={item.image || FALLBACK_IMAGE} 
                     alt={item.title} 
@@ -233,7 +237,11 @@ export default function Home() {
         ) : (
           <div className="space-y-4">
             {filteredItems.map(item => (
-              <div key={item.id} className="flex flex-col md:flex-row gap-6 p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 hover:border-primary/30 transition-all">
+              <div 
+                key={item.id} 
+                onClick={() => handleExplore(item.id)}
+                className="flex flex-col md:flex-row gap-6 p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 hover:border-primary/30 transition-all cursor-pointer group"
+              >
                 <div className="w-full md:w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden">
                   <img src={item.image || FALLBACK_IMAGE} alt={item.title} className="w-full h-full object-cover" />
                 </div>

@@ -1,29 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  History, 
-  Search, 
-  Bell, 
-  UserCircle, 
-  PlusSquare, 
-  Tags, 
-  Settings, 
-  Music, 
-  ChevronRight, 
-  Info, 
-  Music4, 
-  Plus, 
-  Trash2, 
-  Image as ImageIcon, 
-  Upload, 
-  Mic,
-  LayoutDashboard,
-  List,
-  Pencil,
-  Disc,
-  CheckCircle2,
-  AlertCircle,
-  X
+  History, Search, PlusSquare, Tags, Plus, Pencil, Trash2, LayoutDashboard, 
+  List, Info, Upload, Disc, ChevronRight, Music4, CheckCircle2, AlertCircle, X,
+  Music, Settings, Image as ImageIcon
 } from 'lucide-react';
 
 import { categories } from '../data/mockData';
@@ -119,6 +99,7 @@ export default function Dashboard() {
   const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRevised, setIsRevised] = useState(false);
   
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [backImage, setBackImage] = useState<File | null>(null);
@@ -148,6 +129,7 @@ export default function Dashboard() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'revised' | 'non_revised'>('all');
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -161,6 +143,17 @@ export default function Dashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<{id: string, shortId: string, visible: boolean}>({
     id: '',
     shortId: '',
+    visible: false
+  });
+
+  const [imageDeleteConfirm, setImageDeleteConfirm] = useState<{
+    url: string, 
+    field: string, 
+    index?: number, 
+    visible: boolean
+  }>({
+    url: '',
+    field: '',
     visible: false
   });
 
@@ -179,7 +172,11 @@ export default function Dashboard() {
     
     const matchesSearch = titleMatch || authorMatch || idMatch || shortIdMatch || yearMatch;
     const matchesType = filterType === 'all' || item.type === filterType;
-    return matchesSearch && matchesType;
+    const matchesStatus = filterStatus === 'all' || 
+                         (filterStatus === 'revised' && item.revised) || 
+                         (filterStatus === 'non_revised' && !item.revised);
+    
+    return matchesSearch && matchesType && matchesStatus;
   }).sort((a, b) => {
     if (sortOrder === 'newest') {
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
@@ -214,6 +211,7 @@ export default function Dashboard() {
     setDescription(item.description || '');
     setRecordLabel(item.recordLabel || '');
     setCountry(item.country || 'Brasil');
+    setIsRevised(item.revised || false);
     
     // As imagens que já existem permanecem como NULL nos Files (não reupamos), 
     // Manteemos visualmente se quisermos na URL, mas se não enviar imagem nova a rota PUT mantém a antiga.
@@ -359,6 +357,7 @@ export default function Dashboard() {
         exemplarImages: finalUrls.exemplarsData ? finalUrls.exemplarsData.flatMap((ex: any) => Object.values(ex)) : finalUrls.exemplarImages,
         tracksA: category === 'vinil' ? formattedTracksA : [],
         tracksB: category === 'vinil' ? formattedTracksB : [],
+        revised: isRevised
       };
 
       // 3. ENVIAR PARA O COSMOS DB (POST ou PUT)
@@ -390,6 +389,7 @@ export default function Dashboard() {
       setInsertImage(null);
       setRecordImage(null);
       setExemplarsMedia([]);
+      setIsRevised(false);
       setTracksA([{ id: Date.now(), side: 'A', name: '', artists: '', duration: '', audioFile: null }]);
       setTracksB([]);
       setEditingId(null);
@@ -471,6 +471,109 @@ export default function Dashboard() {
       setTrackCountB(filtered.length.toString());
       return filtered;
     });
+  };
+
+  const triggerImageDeletion = (url: string | null | undefined, field: string, index?: number) => {
+    if (!url) {
+      // Se n tem URL, apenas limpa o estado local (caso de arquivo recém selecionado)
+      if (index !== undefined) {
+        const newMedia = [...exemplarsMedia];
+        if (newMedia[index]) newMedia[index][field as keyof typeof newMedia[0]] = null;
+        setExemplarsMedia(newMedia);
+
+        const newExisting = [...(existingImages.exemplars || [])];
+        if (newExisting[index]) newExisting[index][field as keyof typeof newExisting[0]] = null;
+        setExistingImages(prev => ({ ...prev, exemplars: newExisting }));
+      } else {
+        if (field === 'cover') setCoverImage(null);
+        if (field === 'back') setBackImage(null);
+        if (field === 'insert') setInsertImage(null);
+        if (field === 'record') setRecordImage(null);
+        setExistingImages(prev => ({ ...prev, [field]: null }));
+      }
+      return;
+    }
+    
+    // Se tem URL, abre o modal de confirmação para apagar da nuvem
+    setImageDeleteConfirm({ url, field, index, visible: true });
+  };
+
+  const handleDeleteImagePermanent = async () => {
+    const { url, field, index } = imageDeleteConfirm;
+    setIsSubmitting(true);
+    
+    try {
+      // 1. Deleta do Azure
+      const delRes = await fetch('http://localhost:3333/api/uploads', {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+        },
+        body: JSON.stringify({ url })
+      });
+
+      if (!delRes.ok) throw new Error('Falha ao excluir do Azure Storage');
+
+      // 2. Limpa localmente
+      let updatedExemplars: any[] | undefined = undefined;
+      
+      if (index !== undefined) {
+        const newMedia = [...exemplarsMedia];
+        if (newMedia[index]) newMedia[index][field as keyof typeof newMedia[0]] = null;
+        setExemplarsMedia(newMedia);
+
+        updatedExemplars = [...(existingImages.exemplars || [])];
+        if (updatedExemplars[index]) updatedExemplars[index][field as keyof typeof updatedExemplars[0]] = null;
+        setExistingImages(prev => ({ ...prev, exemplars: updatedExemplars }));
+      } else {
+        if (field === 'cover') { setCoverImage(null); setExistingImages(prev => ({ ...prev, cover: null })); }
+        if (field === 'back') { setBackImage(null); setExistingImages(prev => ({ ...prev, back: null })); }
+        if (field === 'insert') { setInsertImage(null); setExistingImages(prev => ({ ...prev, insert: null })); }
+        if (field === 'record') { setRecordImage(null); setExistingImages(prev => ({ ...prev, record: null })); }
+      }
+
+      // 3. SE ESTAMOS EDITANDO, ATUALIZAR O BANCO DE DADOS IMEDIATAMENTE
+      if (editingId) {
+        // Preparamos o payload de atualização rápida
+        const updatePayload: any = {};
+        if (index !== undefined && updatedExemplars) {
+          // Para exemplares, usamos o novo array que acabamos de criar
+          updatePayload.exemplarImages = updatedExemplars.flatMap(ex => Object.values(ex).filter(Boolean));
+        } else {
+          // Para imagens principais
+          const fieldMap: Record<string, string> = {
+            'cover': 'image',
+            'back': 'backImage',
+            'insert': 'insertImage',
+            'record': 'recordImage'
+          };
+          updatePayload[fieldMap[field] || field] = null;
+        }
+
+        const putRes = await fetch(`http://localhost:3333/api/vinis/${editingId}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          },
+          body: JSON.stringify(updatePayload)
+        });
+
+        if (!putRes.ok) throw new Error('Falha ao atualizar o registro no banco de dados.');
+        
+        // Atualiza a lista local para refletir a mudança
+        fetchAcervo();
+      }
+
+      showNotification('Imagem excluída permanentemente da nuvem e do banco.', 'success');
+    } catch (err: any) {
+      console.error(err);
+      showNotification('Erro ao excluir mídia: ' + err.message, 'error');
+    } finally {
+      setIsSubmitting(false);
+      setImageDeleteConfirm(prev => ({ ...prev, visible: false }));
+    }
   };
 
   return (
@@ -586,6 +689,16 @@ export default function Dashboard() {
                       </select>
 
                       <select 
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        className="py-3 px-4 bg-white border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer text-slate-600 appearance-none pr-8 relative"
+                      >
+                        <option value="all">Status: Todos</option>
+                        <option value="revised">Status: Revisados (✅)</option>
+                        <option value="non_revised">Status: Não Revisados</option>
+                      </select>
+
+                      <select 
                         value={sortOrder}
                         onChange={(e) => setSortOrder(e.target.value as any)}
                         className="py-3 px-4 bg-white border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer text-slate-600 appearance-none pr-8 relative"
@@ -646,7 +759,12 @@ export default function Dashboard() {
                                   </div>
                                 )}
                                 <div className="flex flex-col justify-center">
-                                  <span className="text-sm font-bold text-slate-700">{item.title}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-slate-700 leading-tight">{item.title}</span>
+                                    {item.revised && (
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" title="Registro Revisado" />
+                                    )}
+                                  </div>
                                   <span className="text-xs font-semibold text-slate-400">{item.author}</span>
                                 </div>
                               </div>
@@ -662,7 +780,7 @@ export default function Dashboard() {
                             </td>
                             <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} text-right transition-all`}>
                               <div className="flex justify-end gap-2">
-                                <Link to={`/record/${item.id}`} className="text-slate-400 hover:text-primary transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block">
+                                <Link to={`/admin/record/${item.id}`} className="text-slate-400 hover:text-primary transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block">
                                   <Search className="w-4 h-4" />
                                 </Link>
                                 <button 
@@ -830,6 +948,18 @@ export default function Dashboard() {
                           >
                             +
                           </button>
+                        </div>
+                        <div className="flex items-center gap-3 pt-6">
+                          <label className="relative flex items-center cursor-pointer group">
+                            <input 
+                              type="checkbox" 
+                              checked={isRevised} 
+                              onChange={(e) => setIsRevised(e.target.checked)}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <span className="ml-3 text-sm font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">Registro Revisado / Confirmado</span>
+                          </label>
                         </div>
                       </div>
                     </>
@@ -1103,7 +1233,7 @@ export default function Dashboard() {
                       </label>
                       {(coverImage || existingImages.cover) && (
                         <button 
-                          onClick={() => { setCoverImage(null); setExistingImages(prev => ({ ...prev, cover: null })); }}
+                          onClick={() => triggerImageDeletion(existingImages.cover, 'cover')}
                           className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                           title="Remover Imagem"
                           type="button"
@@ -1127,7 +1257,7 @@ export default function Dashboard() {
                       </label>
                       {(backImage || existingImages.back) && (
                         <button 
-                          onClick={() => { setBackImage(null); setExistingImages(prev => ({ ...prev, back: null })); }}
+                          onClick={() => triggerImageDeletion(existingImages.back, 'back')}
                           className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                           title="Remover Imagem"
                           type="button"
@@ -1151,7 +1281,7 @@ export default function Dashboard() {
                       </label>
                       {(insertImage || existingImages.insert) && (
                         <button 
-                          onClick={() => { setInsertImage(null); setExistingImages(prev => ({ ...prev, insert: null })); }}
+                          onClick={() => triggerImageDeletion(existingImages.insert, 'insert')}
                           className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                           title="Remover Imagem"
                           type="button"
@@ -1175,7 +1305,7 @@ export default function Dashboard() {
                       </label>
                       {(recordImage || existingImages.record) && (
                         <button 
-                          onClick={() => { setRecordImage(null); setExistingImages(prev => ({ ...prev, record: null })); }}
+                          onClick={() => triggerImageDeletion(existingImages.record, 'record')}
                           className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                           title="Remover Imagem"
                           type="button"
@@ -1229,7 +1359,7 @@ export default function Dashboard() {
                             </label>
                             {(currentEx.cover || existingEx.cover) && (
                               <button 
-                                onClick={() => { updateEx('cover', null); removeExistingEx('cover'); }}
+                                onClick={() => triggerImageDeletion(existingEx.cover, 'cover', exIdx)}
                                 className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                                 type="button"
                               >
@@ -1249,7 +1379,7 @@ export default function Dashboard() {
                             </label>
                             {(currentEx.back || existingEx.back) && (
                               <button 
-                                onClick={() => { updateEx('back', null); removeExistingEx('back'); }}
+                                onClick={() => triggerImageDeletion(existingEx.back, 'back', exIdx)}
                                 className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                                 type="button"
                               >
@@ -1269,7 +1399,7 @@ export default function Dashboard() {
                             </label>
                             {(currentEx.insert || existingEx.insert) && (
                               <button 
-                                onClick={() => { updateEx('insert', null); removeExistingEx('insert'); }}
+                                onClick={() => triggerImageDeletion(existingEx.insert, 'insert', exIdx)}
                                 className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                                 type="button"
                               >
@@ -1289,7 +1419,7 @@ export default function Dashboard() {
                             </label>
                             {(currentEx.record || existingEx.record) && (
                               <button 
-                                onClick={() => { updateEx('record', null); removeExistingEx('record'); }}
+                                onClick={() => triggerImageDeletion(existingEx.record, 'record', exIdx)}
                                 className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
                                 type="button"
                               >
@@ -1367,6 +1497,40 @@ export default function Dashboard() {
                 className="flex-1 px-6 py-4 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-xl shadow-red-500/20 transition-all"
               >
                 Sim, Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Elegant Image Deletion Permanent Modal */}
+      {imageDeleteConfirm.visible && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setImageDeleteConfirm(prev => ({ ...prev, visible: false }))}></div>
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-md p-10 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 rounded-[2rem] bg-amber-50 flex items-center justify-center text-amber-500 mb-8 mx-auto shadow-inner">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 text-center mb-3">Apagar permanentemente?</h3>
+            <p className="text-slate-500 text-center text-sm font-semibold mb-10 leading-relaxed px-2">
+              Esta ação excluirá a imagem <span className="text-amber-600 font-black italic">definitivamente</span> do servidor de armazenamento da Azure e do registro atual. Você terá que subir outra foto se desejar.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                disabled={isSubmitting}
+                onClick={() => setImageDeleteConfirm(prev => ({ ...prev, visible: false }))}
+                className="flex-1 px-6 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all disabled:opacity-50"
+              >
+                Manter
+              </button>
+              <button 
+                disabled={isSubmitting}
+                onClick={handleDeleteImagePermanent}
+                className="flex-2 px-8 py-4 rounded-2xl bg-amber-500 text-white font-black hover:bg-amber-600 shadow-xl shadow-amber-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                   <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : 'Apagar da Nuvem'}
               </button>
             </div>
           </div>
