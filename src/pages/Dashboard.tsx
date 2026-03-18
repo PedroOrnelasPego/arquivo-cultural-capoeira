@@ -844,7 +844,11 @@ export default function Dashboard() {
                       <button type="button" onClick={() => { setActiveTab('overview'); setEditingId(null); }} className="px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:border-slate-300 hover:bg-slate-50 transition-all">
                         Cancelar e Voltar
                       </button>
-                      <button type="submit" disabled={isSubmitting} className={`px-8 py-3 rounded-xl font-black text-sm shadow-xl transition-all disabled:opacity-50 ${editingId ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-primary text-white shadow-primary/30'}`}>
+                      <button 
+                        type="submit" 
+                        disabled={isSubmitting || isRevised} 
+                        className={`px-8 py-3 rounded-xl font-black text-sm shadow-xl transition-all disabled:opacity-50 ${editingId ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-primary text-white shadow-primary/30'}`}
+                      >
                         {isSubmitting ? 'Salvando...' : editingId ? 'Salvar Modificações' : `Registrar ${categoryLabels[category] || 'Item'}`}
                       </button>
                     </div>
@@ -881,8 +885,8 @@ export default function Dashboard() {
                     <div className="relative">
                       <select 
                         value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all appearance-none"
+                        disabled={isRevised}
+                        className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all appearance-none ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
                         <option value="vinil">Disco de Vinil (LP)</option>
                         <option value="livro">Livro / Publicação</option>
@@ -895,19 +899,19 @@ export default function Dashboard() {
                   
                   <div className="space-y-3">
                     <label className="text-sm font-bold text-slate-900">Título ou Nome</label>
-                    <input value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Título descritivo" type="text" />
+                    <input value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Título descritivo" type="text" />
                   </div>
                   
                   <div className="space-y-3">
                     <label className="text-sm font-bold text-slate-900">Autor / Mestre / Artista</label>
-                    <input value={author} onChange={(e) => setAuthor(e.target.value)} required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Ex: Mestre Bimba" type="text" />
+                    <input value={author} onChange={(e) => setAuthor(e.target.value)} required disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Ex: Mestre Bimba" type="text" />
                   </div>
 
                   {category === 'vinil' && (
                     <>
                       <div className="space-y-3">
                         <label className="text-sm font-bold text-slate-900">Gravadora</label>
-                        <input value={recordLabel} onChange={(e) => setRecordLabel(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Ex: RCA Victor" type="text" />
+                        <input value={recordLabel} onChange={(e) => setRecordLabel(e.target.value)} disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Ex: RCA Victor" type="text" />
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-bold text-slate-900">País</label>
@@ -915,7 +919,8 @@ export default function Dashboard() {
                           <select 
                             value={country} 
                             onChange={(e) => setCountry(e.target.value)} 
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all appearance-none cursor-pointer"
+                            disabled={isRevised} 
+                            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all appearance-none cursor-pointer ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
                             {countries.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
@@ -925,7 +930,7 @@ export default function Dashboard() {
                       
                       <div className="space-y-3">
                         <label className="text-sm font-bold text-slate-900">Ano</label>
-                        <input value={year} onChange={(e) => setYear(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Ex: 1960" type="number" />
+                        <input value={year} onChange={(e) => setYear(e.target.value)} disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Ex: 1960" type="number" />
                       </div>
                       
                       <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -938,7 +943,8 @@ export default function Dashboard() {
                             onChange={(e) => setTrackCountA(e.target.value)}
                             onBlur={handleTrackCountBlurA}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleTrackCountBlurA(); }}
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" 
+                            disabled={isRevised}
+                            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} 
                             placeholder="Ex: 6" 
                           />
                         </div>
@@ -951,7 +957,8 @@ export default function Dashboard() {
                             onChange={(e) => setTrackCountB(e.target.value)}
                             onBlur={handleTrackCountBlurB}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleTrackCountBlurB(); }}
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" 
+                            disabled={isRevised}
+                            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} 
                             placeholder="Ex: 6" 
                           />
                         </div>
@@ -963,21 +970,24 @@ export default function Dashboard() {
                           <button 
                             type="button" 
                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            className="w-14 h-14 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center text-primary hover:bg-primary/5 transition-all text-xl font-bold"
+                            disabled={isRevised}
+                            className={`w-14 h-14 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center text-primary hover:bg-primary/5 transition-all text-xl font-bold ${isRevised ? 'opacity-40 cursor-not-allowed' : ''}`}
                           >
                             -
                           </button>
                           <input 
                             value={quantity} 
                             onChange={(e) => setQuantity(Number(e.target.value))} 
-                            className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-center text-lg font-black outline-none transition-all" 
+                            disabled={isRevised}
+                            className={`flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-center text-lg font-black outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} 
                             type="number" 
                             min="1"
                           />
                           <button 
                             type="button" 
                             onClick={() => setQuantity(quantity + 1)}
-                            className="w-14 h-14 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center text-emerald-500 hover:bg-emerald-50 transition-all text-xl font-bold"
+                            disabled={isRevised}
+                            className={`w-14 h-14 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center text-emerald-500 hover:bg-emerald-50 transition-all text-xl font-bold ${isRevised ? 'opacity-40 cursor-not-allowed' : ''}`}
                           >
                             +
                           </button>
@@ -991,14 +1001,14 @@ export default function Dashboard() {
                   {(category === 'instrumento' || category === 'documento') && (
                     <div className="space-y-3">
                       <label className="text-sm font-bold text-slate-900">Origem Histórica / Região</label>
-                      <input value={country} onChange={(e) => setCountry(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Ex: Santo Amaro, BA" type="text" />
+                      <input value={country} onChange={(e) => setCountry(e.target.value)} disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Ex: Santo Amaro, BA" type="text" />
                     </div>
                   )}
 
                   {category !== 'vinil' && (
                     <div className="space-y-3">
                       <label className="text-sm font-bold text-slate-900">Ano</label>
-                      <input value={year} onChange={(e) => setYear(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all" placeholder="Ex: 1960" type="number" />
+                      <input value={year} onChange={(e) => setYear(e.target.value)} disabled={isRevised} className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Ex: 1960" type="number" />
                     </div>
                   )}
                 </div>
@@ -1041,29 +1051,32 @@ export default function Dashboard() {
                             <td className="px-5 py-5 text-sm font-black text-slate-400">{(index + 1).toString().padStart(2, '0')}</td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-300" 
+                                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-300 ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder="Nome do toque..." 
                                 type="text" 
                                 value={track.name}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackA(track.id, 'name', e.target.value)}
                               />
                             </td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-primary outline-none placeholder:text-slate-300 italic" 
+                                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-primary outline-none placeholder:text-slate-300 italic ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder={author || "Autor / Mestre / Artista"} 
                                 type="text" 
                                 value={track.artists || ''}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackA(track.id, 'artists', e.target.value)}
                               />
                             </td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-16 bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-400 outline-none placeholder:text-slate-300 font-mono" 
+                                className={`w-16 bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-400 outline-none placeholder:text-slate-300 font-mono ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder="00:00" 
                                 type="text"
                                 maxLength={5}
                                 value={track.duration}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackA(track.id, 'duration', handleTimeFormat(e.target.value))}
                               />
                             </td>
@@ -1092,10 +1105,11 @@ export default function Dashboard() {
                                 />
                                 <label 
                                   htmlFor={`audio-A-${track.id}`}
-                                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                                    isRevised ? 'opacity-40 cursor-not-allowed pointer-events-none bg-slate-100' :
                                     track.audioFile 
-                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' 
-                                      : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 cursor-pointer' 
+                                      : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100 cursor-pointer'
                                   }`}
                                 >
                                   {track.audioFile ? (
@@ -1107,7 +1121,12 @@ export default function Dashboard() {
                               </div>
                             </td>
                             <td className="px-5 py-5 text-right">
-                              <button onClick={() => removeTrackA(track.id)} className="text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm group-hover:shadow-md" type="button">
+                              <button 
+                                onClick={() => removeTrackA(track.id)} 
+                                disabled={isRevised}
+                                className={`text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm group-hover:shadow-md ${isRevised ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                                type="button"
+                              >
                                 <Trash2 className="w-4 h-4 inline-block" />
                               </button>
                             </td>
@@ -1124,29 +1143,32 @@ export default function Dashboard() {
                             <td className="px-5 py-5 text-sm font-black text-slate-400">{(index + 1).toString().padStart(2, '0')}</td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-300" 
+                                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-300 ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder="Nome do toque..." 
                                 type="text" 
                                 value={track.name}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackB(track.id, 'name', e.target.value)}
                               />
                             </td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-primary outline-none placeholder:text-slate-300 italic" 
+                                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-primary outline-none placeholder:text-slate-300 italic ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder={author || "Autor / Mestre / Artista"} 
                                 type="text" 
                                 value={track.artists || ''}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackB(track.id, 'artists', e.target.value)}
                               />
                             </td>
                             <td className="px-5 py-5">
                               <input 
-                                className="w-16 bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-400 outline-none placeholder:text-slate-300 font-mono" 
+                                className={`w-16 bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-slate-400 outline-none placeholder:text-slate-300 font-mono ${isRevised ? 'cursor-not-allowed opacity-60' : ''}`} 
                                 placeholder="00:00" 
                                 type="text"
                                 maxLength={5}
                                 value={track.duration}
+                                disabled={isRevised}
                                 onChange={(e) => updateTrackB(track.id, 'duration', handleTimeFormat(e.target.value))}
                               />
                             </td>
@@ -1175,10 +1197,11 @@ export default function Dashboard() {
                                 />
                                 <label 
                                   htmlFor={`audio-B-${track.id}`}
-                                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                                    isRevised ? 'opacity-40 cursor-not-allowed pointer-events-none bg-slate-100' :
                                     track.audioFile 
-                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100' 
-                                      : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 cursor-pointer' 
+                                      : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100 cursor-pointer'
                                   }`}
                                 >
                                   {track.audioFile ? (
@@ -1190,7 +1213,12 @@ export default function Dashboard() {
                               </div>
                             </td>
                             <td className="px-5 py-5 text-right">
-                              <button onClick={() => removeTrackB(track.id)} className="text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm group-hover:shadow-md" type="button">
+                              <button 
+                                onClick={() => removeTrackB(track.id)} 
+                                disabled={isRevised}
+                                className={`text-slate-300 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm group-hover:shadow-md ${isRevised ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                                type="button"
+                              >
                                 <Trash2 className="w-4 h-4 inline-block" />
                               </button>
                             </td>
@@ -1220,7 +1248,8 @@ export default function Dashboard() {
                     <textarea 
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="w-full h-32 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all resize-none" 
+                      disabled={isRevised}
+                      className={`w-full h-32 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-sm font-semibold outline-none transition-all resize-none ${isRevised ? 'opacity-60 cursor-not-allowed' : ''}`} 
                       placeholder="Descreva sobre o que este livro ou documento trata historicamente."
                     ></textarea>
                   </div>
@@ -1241,7 +1270,7 @@ export default function Dashboard() {
                 <div className="p-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="relative group aspect-square">
-                      <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                      <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                         {coverImage || existingImages.cover ? (
                           <img src={coverImage ? URL.createObjectURL(coverImage) : (existingImages.cover || '')} className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
@@ -1250,12 +1279,13 @@ export default function Dashboard() {
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-primary text-center px-4">Capa Principal</p>
                           </>
                         )}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setCoverImage(e.target.files[0])} />
+                        <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => e.target.files && setCoverImage(e.target.files[0])} />
                       </label>
                       {(coverImage || existingImages.cover) && (
                         <button 
-                          onClick={() => triggerImageDeletion(existingImages.cover, 'cover')}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                          onClick={() => !isRevised && triggerImageDeletion(existingImages.cover, 'cover')}
+                          disabled={isRevised}
+                          className={`absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                           title="Remover Imagem"
                           type="button"
                         >
@@ -1265,7 +1295,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="relative group aspect-square">
-                      <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                      <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                         {backImage || existingImages.back ? (
                           <img src={backImage ? URL.createObjectURL(backImage) : (existingImages.back || '')} className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
@@ -1274,12 +1304,13 @@ export default function Dashboard() {
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-primary text-center px-4">Contracapa</p>
                           </>
                         )}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setBackImage(e.target.files[0])} />
+                        <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => e.target.files && setBackImage(e.target.files[0])} />
                       </label>
                       {(backImage || existingImages.back) && (
                         <button 
-                          onClick={() => triggerImageDeletion(existingImages.back, 'back')}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                          onClick={() => !isRevised && triggerImageDeletion(existingImages.back, 'back')}
+                          disabled={isRevised}
+                          className={`absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                           title="Remover Imagem"
                           type="button"
                         >
@@ -1289,7 +1320,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="relative group aspect-square">
-                      <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                      <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                         {insertImage || existingImages.insert ? (
                           <img src={insertImage ? URL.createObjectURL(insertImage) : (existingImages.insert || '')} className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
@@ -1298,12 +1329,13 @@ export default function Dashboard() {
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-primary text-center px-4">Encarte / Detalhes</p>
                           </>
                         )}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setInsertImage(e.target.files[0])} />
+                        <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => e.target.files && setInsertImage(e.target.files[0])} />
                       </label>
                       {(insertImage || existingImages.insert) && (
                         <button 
-                          onClick={() => triggerImageDeletion(existingImages.insert, 'insert')}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                          onClick={() => !isRevised && triggerImageDeletion(existingImages.insert, 'insert')}
+                          disabled={isRevised}
+                          className={`absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                           title="Remover Imagem"
                           type="button"
                         >
@@ -1313,7 +1345,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="relative group aspect-square">
-                      <label className="w-full h-full rounded-3xl bg-emerald-50/30 border-2 border-dashed border-emerald-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all overflow-hidden relative">
+                      <label className={`w-full h-full rounded-3xl bg-emerald-50/30 border-2 border-dashed border-emerald-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-emerald-500 hover:bg-emerald-50'}`}>
                         {recordImage || existingImages.record ? (
                           <img src={recordImage ? URL.createObjectURL(recordImage) : (existingImages.record || '')} className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
@@ -1322,12 +1354,13 @@ export default function Dashboard() {
                             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 group-hover:text-emerald-500 text-center px-4">Disco Fisico #1</p>
                           </>
                         )}
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && setRecordImage(e.target.files[0])} />
+                        <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => e.target.files && setRecordImage(e.target.files[0])} />
                       </label>
                       {(recordImage || existingImages.record) && (
                         <button 
-                          onClick={() => triggerImageDeletion(existingImages.record, 'record')}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                          onClick={() => !isRevised && triggerImageDeletion(existingImages.record, 'record')}
+                          disabled={isRevised}
+                          className={`absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                           title="Remover Imagem"
                           type="button"
                         >
@@ -1370,18 +1403,19 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                           <div className="relative group aspect-square">
-                            <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                            <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                               {currentEx.cover || existingEx.cover ? (
                                 <img src={currentEx.cover ? URL.createObjectURL(currentEx.cover) : (existingEx.cover || '')} className="absolute inset-0 w-full h-full object-cover" />
                               ) : (
                                 <><Upload className="w-8 h-8 text-slate-300 group-hover:text-primary" /><p className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Capa # {exIdx + 2}</p></>
                               )}
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && updateEx('cover', e.target.files[0])} />
+                              <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => !isRevised && e.target.files && updateEx('cover', e.target.files[0])} />
                             </label>
                             {(currentEx.cover || existingEx.cover) && (
                               <button 
-                                onClick={() => triggerImageDeletion(existingEx.cover, 'cover', exIdx)}
-                                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                                onClick={() => !isRevised && triggerImageDeletion(existingEx.cover, 'cover', exIdx)}
+                                disabled={isRevised}
+                                className={`absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                                 type="button"
                               >
                                 <X className="w-3 h-3" />
@@ -1390,18 +1424,19 @@ export default function Dashboard() {
                           </div>
 
                           <div className="relative group aspect-square">
-                            <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                            <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                               {currentEx.back || existingEx.back ? (
                                 <img src={currentEx.back ? URL.createObjectURL(currentEx.back) : (existingEx.back || '')} className="absolute inset-0 w-full h-full object-cover" />
                               ) : (
                                 <><Upload className="w-8 h-8 text-slate-300 group-hover:text-primary" /><p className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Verso # {exIdx + 2}</p></>
                               )}
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && updateEx('back', e.target.files[0])} />
+                              <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => !isRevised && e.target.files && updateEx('back', e.target.files[0])} />
                             </label>
                             {(currentEx.back || existingEx.back) && (
                               <button 
-                                onClick={() => triggerImageDeletion(existingEx.back, 'back', exIdx)}
-                                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                                onClick={() => !isRevised && triggerImageDeletion(existingEx.back, 'back', exIdx)}
+                                disabled={isRevised}
+                                className={`absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                                 type="button"
                               >
                                 <X className="w-3 h-3" />
@@ -1410,18 +1445,19 @@ export default function Dashboard() {
                           </div>
 
                           <div className="relative group aspect-square">
-                            <label className="w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden relative">
+                            <label className={`w-full h-full rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/5'}`}>
                               {currentEx.insert || existingEx.insert ? (
                                 <img src={currentEx.insert ? URL.createObjectURL(currentEx.insert) : (existingEx.insert || '')} className="absolute inset-0 w-full h-full object-cover" />
                               ) : (
                                 <><Upload className="w-8 h-8 text-slate-300 group-hover:text-primary" /><p className="text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Encarte # {exIdx + 2}</p></>
                               )}
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && updateEx('insert', e.target.files[0])} />
+                              <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => !isRevised && e.target.files && updateEx('insert', e.target.files[0])} />
                             </label>
                             {(currentEx.insert || existingEx.insert) && (
                               <button 
-                                onClick={() => triggerImageDeletion(existingEx.insert, 'insert', exIdx)}
-                                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                                onClick={() => !isRevised && triggerImageDeletion(existingEx.insert, 'insert', exIdx)}
+                                disabled={isRevised}
+                                className={`absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                                 type="button"
                               >
                                 <X className="w-3 h-3" />
@@ -1430,18 +1466,19 @@ export default function Dashboard() {
                           </div>
 
                           <div className="relative group aspect-square text-center">
-                            <label className="w-full h-full rounded-3xl bg-emerald-50/30 border-2 border-dashed border-emerald-200 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all overflow-hidden relative">
+                            <label className={`w-full h-full rounded-3xl bg-emerald-50/30 border-2 border-dashed border-emerald-200 flex flex-col items-center justify-center gap-3 transition-all overflow-hidden relative ${isRevised ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:border-emerald-500 hover:bg-emerald-50'}`}>
                               {currentEx.record || existingEx.record ? (
                                 <img src={currentEx.record ? URL.createObjectURL(currentEx.record) : (existingEx.record || '')} className="absolute inset-0 w-full h-full object-cover" />
                               ) : (
                                 <><Disc className="w-8 h-8 text-emerald-300 group-hover:text-emerald-500" /><p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Disco Fisico # {exIdx + 2}</p></>
                               )}
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files && updateEx('record', e.target.files[0])} />
+                              <input type="file" accept="image/*" className="hidden" disabled={isRevised} onChange={(e) => !isRevised && e.target.files && updateEx('record', e.target.files[0])} />
                             </label>
                             {(currentEx.record || existingEx.record) && (
                               <button 
-                                onClick={() => triggerImageDeletion(existingEx.record, 'record', exIdx)}
-                                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all z-10"
+                                onClick={() => !isRevised && triggerImageDeletion(existingEx.record, 'record', exIdx)}
+                                disabled={isRevised}
+                                className={`absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isRevised ? 'opacity-0 scale-0' : 'hover:scale-110'}`}
                                 type="button"
                               >
                                 <X className="w-3 h-3" />
