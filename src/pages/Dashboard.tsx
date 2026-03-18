@@ -269,15 +269,22 @@ export default function Dashboard() {
       if (insertImage) allFilesToUpload.push({ original: insertImage, type: 'insert' });
       if (recordImage) allFilesToUpload.push({ original: recordImage, type: 'record' });
       
-      // Se estamos editando, começamos com as imagens que já existem (a menos que tenham sido limpas ou substituídas)
-      const existingItem = editingId ? archiveItems.find(i => i.id === editingId) : null;
+      // Prepare final URLs with existing database values (to support partial edits)
       const finalUrls: Record<string, any> = { 
         coverImage: existingImages.cover || null,
         backImage: existingImages.back || null,
         insertImage: existingImages.insert || null,
         recordImage: existingImages.record || null,
-        exemplarImages: existingImages.exemplars ? existingImages.exemplars.flatMap(ex => Object.values(ex).filter(Boolean)) : []
+        // Clona os exemplares existentes para atualizar apenas os alterados
+        exemplarsData: existingImages.exemplars ? JSON.parse(JSON.stringify(existingImages.exemplars)) : []
       };
+
+      // Garante que o array de exemplares tenha slots suficientes para a quantidade selecionada
+      if (quantity > 1) {
+        while (finalUrls.exemplarsData.length < quantity - 1) {
+          finalUrls.exemplarsData.push({ cover: null, back: null, insert: null, record: null });
+        }
+      }
 
       exemplarsMedia.forEach((ex, idx) => {
         if (ex.cover) allFilesToUpload.push({ original: ex.cover, type: `exemplar_${idx}_cover` });
@@ -320,9 +327,10 @@ export default function Dashboard() {
             const parts = fileRef.type.split('_');
             const exIdx = parseInt(parts[1], 10);
             const key = parts[2];
-            if (!finalUrls.exemplarsData) finalUrls.exemplarsData = [];
-            if (!finalUrls.exemplarsData[exIdx]) finalUrls.exemplarsData[exIdx] = {};
-            finalUrls.exemplarsData[exIdx][key] = uploadedFile.url;
+            // Atualiza o slot específico do exemplar com a nova URL da nuvem
+            if (finalUrls.exemplarsData[exIdx]) {
+              finalUrls.exemplarsData[exIdx][key] = uploadedFile.url;
+            }
           }
 
           if (fileRef.type === 'trackA') finalUrls[`trackA_${fileRef.id}`] = uploadedFile.url;
@@ -355,7 +363,13 @@ export default function Dashboard() {
         backImage: finalUrls.backImage,
         insertImage: finalUrls.insertImage,
         recordImage: finalUrls.recordImage,
-        exemplarImages: finalUrls.exemplarsData ? finalUrls.exemplarsData.flatMap((ex: any) => Object.values(ex)) : finalUrls.exemplarImages,
+        // Flat array mantendo a estrutura de 4 slots em sequência: [C1, V1, E1, D1, C2, V2, E2, D2...]
+        exemplarImages: finalUrls.exemplarsData.flatMap((ex: any) => [
+          ex.cover || null,
+          ex.back || null,
+          ex.insert || null,
+          ex.record || null
+        ]),
         tracksA: category === 'vinil' ? formattedTracksA : [],
         tracksB: category === 'vinil' ? formattedTracksB : [],
         revised: isRevised
@@ -539,8 +553,13 @@ export default function Dashboard() {
         // Preparamos o payload de atualização rápida
         const updatePayload: any = {};
         if (index !== undefined && updatedExemplars) {
-          // Para exemplares, usamos o novo array que acabamos de criar
-          updatePayload.exemplarImages = updatedExemplars.flatMap(ex => Object.values(ex).filter(Boolean));
+          // Flat array mantendo a estrutura de 4 slots [C, V, E, D]
+          updatePayload.exemplarImages = updatedExemplars.flatMap(ex => [
+            ex.cover || null,
+            ex.back || null,
+            ex.insert || null,
+            ex.record || null
+          ]);
         } else {
           // Para imagens principais
           const fieldMap: Record<string, string> = {
