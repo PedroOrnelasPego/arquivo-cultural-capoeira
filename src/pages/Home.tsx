@@ -18,6 +18,7 @@ import { API_BASE_URL, API_KEY } from '../config';
 
 import { categories } from '../data/mockData';
 import vinilPadrao from '../assets/vinil_padrao.png';
+import logoImg from '../assets/logo_home.png';
 
 const FALLBACK_IMAGE = vinilPadrao;
 
@@ -105,30 +106,44 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-2xl">
-            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-6">
-              Preservando a <span className="text-primary italic">Herança da Ginga</span>
-            </h2>
-            <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed">
-              Explore o maior acervo digital de capoeira do mundo. Discos raros, manuscritos, fotos e áudios que contam a história da nossa resistência cultural.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <div className="relative flex-1 min-w-[300px]">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar por Mestre, Título ou Ano..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none focus:ring-2 focus:ring-primary outline-none transition-all"
-                />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+            
+            <div className="max-w-2xl flex-1">
+              <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-6">
+                Preservando a <br/>
+                <span className="text-primary italic">Nossa História</span>
+              </h2>
+              <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed">
+                Explore o maior acervo digital de capoeira do mundo. Discos raros, manuscritos, fotos e áudios que contam a história da nossa resistência cultural.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <div className="relative flex-1 min-w-[300px]">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por Mestre, Título ou Ano..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none focus:ring-2 focus:ring-primary outline-none transition-all"
+                  />
+                </div>
+                <button 
+                  className="px-8 py-4 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+                >
+                  Pesquisar
+                </button>
               </div>
-              <button 
-                className="px-8 py-4 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
-              >
-                Pesquisar
-              </button>
             </div>
+
+            {/* Logo na Lateral Direita */}
+            <div className="hidden md:flex flex-1 justify-end items-center">
+              <img 
+                src={logoImg} 
+                alt="Alanson Costela Logo" 
+                className="max-w-[400px] xl:max-w-[500px] w-full h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-out" 
+              />
+            </div>
+
           </div>
         </div>
         

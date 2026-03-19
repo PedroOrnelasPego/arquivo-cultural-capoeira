@@ -1,4 +1,4 @@
-import { History } from 'lucide-react';
+import { Globe2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
@@ -9,12 +9,12 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
-                <History className="w-6 h-6" />
+                <Globe2 className="w-6 h-6" />
               </div>
-              <h2 className="text-xl font-bold">Arquivo Cultural Capoeira</h2>
+              <h2 className="text-xl font-bold">Alanson Costela</h2>
             </div>
             <p className="text-slate-400 max-w-sm mb-6">
-              Uma iniciativa dedicada à preservação, catalogação e difusão da memória histórica da Capoeira no Brasil e no mundo.
+              Amplificação Cultural. Uma iniciativa dedicada à conexão, difusão e promoção da cultura através do fomento a projetos e ideias globais.
             </p>
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary transition-colors cursor-pointer">
@@ -48,8 +48,8 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <p>© 2026 Arquivo Cultural Capoeira. Todos os direitos reservados.</p>
-          <p>Desenvolvido para preservar a Ginga.</p>
+          <p>© 2026 Alanson Costela - Amplificação Cultural. Todos os direitos reservados.</p>
+          <p>Potencializando vozes e ideias.</p>
         </div>
       </div>
     </footer>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { ADMIN_EMAIL } from '../config';
+import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
   const { instance, accounts } = useMsal();
@@ -42,6 +43,7 @@ export default function Navbar() {
 
   // Theme support
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [palette, setPalette] = useState(localStorage.getItem('palette') || 'default');
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -52,6 +54,14 @@ export default function Navbar() {
       localStorage.setItem('theme', 'light');
     }
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4', 'theme-5', 'theme-6');
+    if (palette !== 'default') {
+      document.documentElement.classList.add(palette);
+    }
+    localStorage.setItem('palette', palette);
+  }, [palette]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -73,15 +83,9 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-lg border-b border-primary/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[72px] flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
-            <History className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold leading-none tracking-tight text-slate-900">Arquivo Cultural</h1>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Capoeira</span>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 transition-transform hover:scale-105 active:scale-95">
+          <img src={logoImg} alt="Alanson Costela - Amplificação Cultural" className="h-[76px] w-auto drop-shadow-md" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -101,10 +105,53 @@ export default function Navbar() {
                 <span className="text-[10px] text-slate-400 font-medium">{userEmail}</span>
               </div>
               {badgeLabel && (
-                <span className="text-[10px] font-black text-white uppercase tracking-widest px-3 py-1 bg-primary dark:bg-primary rounded-full shadow-lg shadow-primary/20 transition-all">
+                <span className="text-[10px] font-black uppercase text-white bg-red-500 px-2 py-0.5 rounded-full tracking-widest">
                   {badgeLabel}
                 </span>
               )}
+              
+              {/* Temporary Client Theme Switcher */}
+              <div className="flex items-center gap-1.5 ml-8 mr-2 border-l border-slate-200 dark:border-slate-800 pl-6 relative group">
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Aprovação do Cliente</span>
+                <button 
+                  onClick={() => setPalette('theme-1')} 
+                  className={`w-5 h-5 rounded-full bg-[#DE993B] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-1' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Amarelo / Laranja" 
+                />
+                <button 
+                  onClick={() => setPalette('theme-2')} 
+                  className={`w-5 h-5 rounded-full bg-[#E75E16] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-2' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Laranja Vivo" 
+                />
+                <button 
+                  onClick={() => setPalette('theme-3')} 
+                  className={`w-5 h-5 rounded-full bg-[#6B8B64] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-3' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Verde Musgo e Laranja (Base)" 
+                />
+                <button 
+                  onClick={() => setPalette('theme-4')} 
+                  className={`w-5 h-5 rounded-full bg-gradient-to-br from-[#E75E16] to-[#6B8B64] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-4' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Misturado: Laranja c/ Verde" 
+                />
+                <button 
+                  onClick={() => setPalette('theme-5')} 
+                  className={`w-5 h-5 rounded-full bg-gradient-to-br from-[#6B8B64] to-[#E75E16] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-5' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Misturado: Verde c/ Laranja" 
+                />
+                <button 
+                  onClick={() => setPalette('theme-6')} 
+                  className={`w-5 h-5 rounded-full bg-gradient-to-tr from-[#6B8B64] via-[#DE993B] to-[#E75E16] border-2 shadow-sm transition-transform hover:scale-110 ${palette === 'theme-6' ? 'border-primary ring-2 ring-primary/30' : 'border-white'}`} 
+                  title="Misturado 3 Cores: Verde, Laranja e Amarelo" 
+                />
+                <button 
+                  onClick={() => setPalette('default')} 
+                  className={`w-5 h-5 rounded-full bg-slate-300 border-2 shadow-sm transition-transform hover:scale-110 flex items-center justify-center text-[8px] font-black text-white ${palette === 'default' ? 'border-slate-500 ring-2 ring-slate-400/30' : 'border-white'}`} 
+                  title="Padrão Original"
+                >
+                  X
+                </button>
+              </div>
+
               <button 
                 onClick={toggleTheme} 
                 className="p-2.5 rounded-full border-2 border-slate-200 text-slate-500 hover:bg-slate-100 transition-all dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"

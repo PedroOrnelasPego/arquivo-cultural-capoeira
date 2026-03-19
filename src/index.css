@@ -4,11 +4,83 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #ED3237;
-  --color-background-light: #ffffff;
-  --color-background-dark: #121212;
-  --color-earth-brown: #5d4037;
-  --color-burnt-yellow: #d4a017;
-  --color-forest-green: #2e7d32;
+  --color-primary: #6B8B64;
+  --color-background-light: #F4F5F4;
+  --color-background-dark: #1A2019;
+  --color-earth-brown: #E75E16;
+  --color-burnt-yellow: #DE993B;
+  --color-forest-green: #4D6648;
   --font-display: "Inter", sans-serif;
+}
+
+:root.theme-1 {
+  --color-primary: #DE993B;
+  --color-earth-brown: #E75E16;
+}
+
+:root.theme-2 {
+  --color-primary: #E75E16;
+  --color-earth-brown: #DE993B;
+}
+
+:root.theme-3 {
+  --color-primary: #6B8B64;
+  --color-earth-brown: #E75E16;
+}
+
+:root.theme-4 {
+  --color-primary: #E75E16;
+  --color-earth-brown: #6B8B64;
+  --color-burnt-yellow: #6B8B64;
+}
+
+:root.theme-5 {
+  --color-primary: #6B8B64;
+  --color-earth-brown: #E75E16;
+  --color-burnt-yellow: #E75E16;
+}
+
+:root.theme-6 {
+  --color-primary: #6B8B64;
+  --color-earth-brown: #E75E16;
+  --color-burnt-yellow: #DE993B;
+  --color-forest-green: #E75E16;
+}
+
+/* ==================================================
+   Substituições de Mix de Cores (Apresentação Cliente)
+   Estas regras forçam o botão a ter uma cor, e o hover outra.
+   ================================================== */
+
+/* Tema 4: Laranja com Hover Verde */
+:root.theme-4 .bg-primary {
+  background-color: var(--color-primary) !important;
+}
+:root.theme-4 .bg-primary:hover {
+  background-color: var(--color-earth-brown) !important;
+}
+:root.theme-4 .text-primary { color: var(--color-primary) !important; }
+:root.theme-4 .hover\:text-primary:hover { color: var(--color-earth-brown) !important; }
+
+/* Tema 5: Verde com Hover Laranja */
+:root.theme-5 .bg-primary {
+  background-color: var(--color-primary) !important;
+}
+:root.theme-5 .bg-primary:hover {
+  background-color: var(--color-earth-brown) !important;
+}
+:root.theme-5 .text-primary { color: var(--color-primary) !important; }
+:root.theme-5 .hover\:text-primary:hover { color: var(--color-earth-brown) !important; }
+
+/* Tema 6: Gradiente das 3 Cores */
+:root.theme-6 .bg-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-earth-brown)) !important;
+}
+:root.theme-6 .bg-primary:hover {
+  background: linear-gradient(135deg, var(--color-earth-brown), var(--color-burnt-yellow)) !important;
+}
+:root.theme-6 .text-primary { 
+  background: linear-gradient(135deg, var(--color-primary), var(--color-earth-brown));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
