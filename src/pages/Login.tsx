@@ -3,6 +3,7 @@ import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { msalInstance } from '../config/msalConfig';
 import React, { useState } from 'react';
 import { API_BASE_URL, API_KEY } from '../config';
+import { useMsal } from '@azure/msal-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -55,33 +56,109 @@ export default function Login() {
 
   const strength = getPasswordStrength(password);
 
-  const handleMicrosoftLogin = async () => {
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      // Inicializar o MSAL é necessário nas versões recentes antes de chamar o popup na unha
-      try { await msalInstance.initialize(); } catch (e) { /* Trata o erro se já estiver inicializado */ }
+  const { instance, inProgress, accounts } = useMsal();
+
+  // 1. Efeito para capturar o resultado que vem da URL (Redirecionamento)
+  React.useEffect(() => {
+    const processRedirect = async () => {
+      console.log('--- MSAL Lifecycle ---');
+      console.log('Status Atual (inProgress):', inProgress);
       
-      const loginResponse = await msalInstance.loginPopup({
-        scopes: ["User.Read"]
+      try {
+        const response = await instance.handleRedirectPromise();
+        
+        if (response) {
+          console.log('Resultado de Redirecionamento capturado:', response);
+          handleAuthSuccess(response.account);
+        } else if (accounts.length > 0) {
+          console.log('Usuário já possui conta ativa no MSAL:', accounts[0].username);
+          handleAuthSuccess(accounts[0]);
+        }
+      } catch (error) {
+        console.error('Erro ao processar redirecionamento MSAL:', error);
+      }
+    };
+
+    processRedirect();
+  }, [inProgress]);
+
+  const handleAuthSuccess = async (account: any) => {
+    const username = account.name || 'Curador Microsoft';
+    const email = (account.username || '').toLowerCase();
+    
+    console.log('Sincronizando perfil com o CosmosDB:', username, email);
+
+    try {
+      // Chamada para o Backend salvar o usuário no Database 'Users' -> Container 'Items'
+      const response = await fetch(`${API_BASE_URL}/api/auth/sync-microsoft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify({
+          email: email,
+          name: username,
+          microsoftId: account.localAccountId || account.homeAccountId
+        })
       });
 
-      console.log('Dados do Microsoft Entra capturados:', loginResponse);
-      
-      const username = loginResponse.account?.name || 'Curador Autorizado';
-      
-      // Salva provisoriamente como admin só para o fluxo atual liberar acesso
-      localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userName', username);
-      
-      const state = location.state as { redirectTo?: string };
-      navigate(state?.redirectTo || '/');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Perfil sincronizado no CosmosDB com sucesso!', data);
+        
+        // Atualizamos o papel (role) baseado no que o banco retornou (caso tenha sido mudado no portal)
+        if (data.user && data.user.role) {
+          localStorage.setItem('userRole', data.user.role);
+        } else {
+          // Fallback se o domínio bater
+          let assignedRole = 'public';
+          if (email.endsWith('@icmbc.com.br') || email.includes('admin')) {
+            assignedRole = 'admin';
+          }
+          localStorage.setItem('userRole', assignedRole);
+        }
+      } else {
+        console.warn('Falha na sincronização do perfil (API retornou erro).');
+      }
+    } catch (err) {
+      console.error('Erro de rede ao tentar sincronizar perfil:', err);
+    }
 
+    localStorage.setItem('userName', username);
+    localStorage.setItem('userEmail', email);
+
+    // Limpa o fragmento da URL (aquela parte feia de #code=...) para evitar loops
+    if (window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const state = location.state as { redirectTo?: string };
+    navigate(state?.redirectTo || '/');
+  };
+
+  const handleMicrosoftLogin = async () => {
+    if (inProgress !== "none") {
+      console.log('Interação já em andamento. Status:', inProgress);
+      return; 
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+    
+    console.log('Iniciando Fluxo de Redirecionamento Microsoft...');
+
+    try {
+      // Usar loginRedirect em vez de loginPopup para evitar erros de bloqueio de popup e loops
+      await instance.loginRedirect({
+        scopes: ["User.Read"],
+        prompt: "select_account"
+      });
+      // O código para aqui pois a página é redirecionada para a Microsoft
     } catch (error: any) {
-      console.error('Erro na Janela da Microsoft:', error);
-      setErrorMessage('Erro MSAL: ' + (error?.message || JSON.stringify(error) || 'O login foi cancelado ou ocorreu um problema.'));
-    } finally {
+      console.error('Falha ao iniciar Redirecionamento:', error);
       setIsLoading(false);
+      setErrorMessage('Erro ao iniciar login: ' + error.message);
     }
   };
 

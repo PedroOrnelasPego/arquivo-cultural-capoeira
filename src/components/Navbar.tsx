@@ -1,14 +1,35 @@
 import { History, Search, Bell, UserCircle, Menu, X, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 
 export default function Navbar() {
+  const { instance, accounts } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
   const isDashboard = location.pathname.includes('/dashboard');
+  
+  // 1. Monitoramento de Sessão Microsoft (Para depuração direta no console F12)
+  useEffect(() => {
+    if (isAuthenticated && accounts.length > 0) {
+      console.log('--- Identificação de Sessão (Login Monitor) ---');
+      console.log('Usuário Microsoft Logado:', accounts[0].name);
+      console.log('E-mail Oficial:', accounts[0].username);
+      console.log('ID Local (Home Tenant):', accounts[0].homeAccountId);
+      console.log('----------------------------------------------');
+    } else {
+      console.log('Nenhum usuário Microsoft autenticado no momento.');
+    }
+  }, [isAuthenticated, accounts]);
+
+  // Sincroniza informações: MSAL (prioridade) + LocalStorage
   const role = localStorage.getItem('userRole');
-  const isAdminOrEditor = role === 'admin' || role === 'editor';
+  const account = accounts[0];
+  const userName = account?.name || localStorage.getItem('userName') || 'Usuário';
+  const userEmail = account?.username || localStorage.getItem('userEmail') || '';
+  const isAdminOrEditor = role === 'admin' || role === 'editor' || isAuthenticated;
 
   // Theme support
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -28,8 +49,18 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('userRole');
-    window.location.href = '/';
+    // Limpa estado local de forma agressiva
+    localStorage.clear();
+    
+    // Se estiver logado via MSAL, faz o logout completo
+    if (isAuthenticated) {
+      instance.logoutPopup({
+        postLogoutRedirectUri: "/",
+        mainWindowRedirectUri: "/"
+      });
+    } else {
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -55,9 +86,13 @@ export default function Navbar() {
             </Link>
           )}
 
-          {role ? (
+          {(role || isAuthenticated) ? (
             <div className="flex items-center gap-4 ml-6 pl-6 border-l border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">{role}</span>
+              <div className="flex flex-col items-end mr-2">
+                <span className="text-sm font-bold text-slate-900 leading-tight">{userName}</span>
+                <span className="text-[10px] text-slate-400 font-medium">{userEmail}</span>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">{role || 'MODERADOR'}</span>
               <button 
                 onClick={toggleTheme} 
                 className="p-2.5 rounded-full border-2 border-slate-200 text-slate-500 hover:bg-slate-100 transition-all dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"

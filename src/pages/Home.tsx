@@ -22,9 +22,14 @@ const FALLBACK_IMAGE = vinilPadrao;
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'newest' | 'oldest' | 'quantity'>('alphabetical');
+
+  const normalizeText = (text: string) => {
+    return (text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
   
   const navigate = useNavigate();
   const role = localStorage.getItem('userRole');
@@ -62,22 +67,32 @@ export default function Home() {
     }
   };
 
-  const filteredItems = archiveItems.filter(item => 
-    selectedCategory === 'all' || item.type === selectedCategory
-  ).sort((a, b) => {
+  const filteredItems = archiveItems.filter(item => {
+    const categoryMatch = selectedCategory === 'all' || item.type === selectedCategory;
+    
+    if (!searchTerm) return categoryMatch;
+
+    const normalizedSearch = normalizeText(searchTerm);
+    const titleMatch = normalizeText(item.title).includes(normalizedSearch);
+    const authorMatch = normalizeText(item.author).includes(normalizedSearch);
+    const yearMatch = (item.year || '').toString().includes(normalizedSearch);
+    const descriptionMatch = normalizeText(item.description).includes(normalizedSearch);
+
+    return categoryMatch && (titleMatch || authorMatch || yearMatch || descriptionMatch);
+  }).sort((a, b) => {
     if (sortOrder === 'alphabetical') {
       return (a.title || '').localeCompare(b.title || '');
     }
     if (sortOrder === 'newest') {
-      const yearDiff = (b.year || 0) - (a.year || 0);
+      const yearDiff = (Number(b.year) || 0) - (Number(a.year) || 0);
       return yearDiff !== 0 ? yearDiff : (a.title || '').localeCompare(b.title || '');
     }
     if (sortOrder === 'oldest') {
-      const yearDiff = (a.year || 0) - (b.year || 0);
+      const yearDiff = (Number(a.year) || 0) - (Number(b.year) || 0);
       return yearDiff !== 0 ? yearDiff : (a.title || '').localeCompare(b.title || '');
     }
     if (sortOrder === 'quantity') {
-      return (b.quantity || 1) - (a.quantity || 1);
+      return (Number(b.quantity) || 1) - (Number(a.quantity) || 1);
     }
     return 0;
   });
@@ -102,10 +117,14 @@ export default function Home() {
                 <input 
                   type="text" 
                   placeholder="Buscar por Mestre, Título ou Ano..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none focus:ring-2 focus:ring-primary outline-none transition-all"
                 />
               </div>
-              <button className="px-8 py-4 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
+              <button 
+                className="px-8 py-4 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+              >
                 Pesquisar
               </button>
             </div>

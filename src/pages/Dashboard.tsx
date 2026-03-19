@@ -53,10 +53,11 @@ export default function Dashboard() {
     const { id, shortId } = deleteConfirm;
     setDeleteConfirm(prev => ({ ...prev, visible: false }));
     try {
-      const response = await fetch(`http://localhost:3333/api/acervo/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/acervo/${id}`, {
         method: 'DELETE',
         headers: {
-          'x-api-key': '94mG8aD!@L8t!bV1nB7xZ$CapoeiraAcervoProd2026'
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
         }
       });
 
@@ -383,7 +384,8 @@ export default function Dashboard() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
         },
         body: JSON.stringify(payload)
       });
@@ -523,7 +525,8 @@ export default function Dashboard() {
         method: 'DELETE',
         headers: { 
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
         },
         body: JSON.stringify({ url })
       });
@@ -575,7 +578,8 @@ export default function Dashboard() {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
-            'x-api-key': API_KEY
+            'x-api-key': API_KEY,
+            'x-user-email': localStorage.getItem('userEmail') || ''
           },
           body: JSON.stringify(updatePayload)
         });
@@ -846,7 +850,7 @@ export default function Dashboard() {
                       </button>
                       <button 
                         type="submit" 
-                        disabled={isSubmitting || isRevised} 
+                        disabled={isSubmitting} 
                         className={`px-8 py-3 rounded-xl font-black text-sm shadow-xl transition-all disabled:opacity-50 ${editingId ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-primary text-white shadow-primary/30'}`}
                       >
                         {isSubmitting ? 'Salvando...' : editingId ? 'Salvar Modificações' : `Registrar ${categoryLabels[category] || 'Item'}`}
