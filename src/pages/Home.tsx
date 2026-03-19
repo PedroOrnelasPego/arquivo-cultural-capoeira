@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useIsAuthenticated } from '@azure/msal-react';
 import { API_BASE_URL, API_KEY } from '../config';
 
 import { categories } from '../data/mockData';
@@ -32,7 +33,7 @@ export default function Home() {
   };
   
   const navigate = useNavigate();
-  const role = localStorage.getItem('userRole');
+  const isAuthenticated = useIsAuthenticated();
 
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function Home() {
   }, []);
 
   const handleExplore = (id: number) => {
-    if (role) {
+    if (isAuthenticated) {
       navigate(`/record/${id}`);
     } else {
       navigate('/login', { state: { redirectTo: `/record/${id}` } });

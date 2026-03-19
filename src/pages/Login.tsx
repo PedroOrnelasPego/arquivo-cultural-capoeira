@@ -2,8 +2,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { msalInstance } from '../config/msalConfig';
 import React, { useState } from 'react';
-import { API_BASE_URL, API_KEY } from '../config';
 import { useMsal } from '@azure/msal-react';
+import { ADMIN_EMAIL, API_BASE_URL, API_KEY } from '../config';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -108,15 +108,20 @@ export default function Login() {
         console.log('Perfil sincronizado no CosmosDB com sucesso!', data);
         
         // Atualizamos o papel (role) baseado no que o banco retornou (caso tenha sido mudado no portal)
-        if (data.user && data.user.role) {
-          localStorage.setItem('userRole', data.user.role);
+        // Atualizamos o papel (role) baseado no que o banco retornou (caso tenha sido mudado no portal)
+        if (data.user) {
+          localStorage.setItem('userRole', data.user.role || 'public');
+          localStorage.setItem('isCurator', String(data.user.isCurator || false));
         } else {
-          // Fallback se o domínio bater
+          // Fallback seguro: Apenas o e-mail centralizado recebe Admin no primeiro acesso
           let assignedRole = 'public';
-          if (email.endsWith('@icmbc.com.br') || email.includes('admin')) {
+          let assignedCurator = false;
+          if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
             assignedRole = 'admin';
+            assignedCurator = true;
           }
           localStorage.setItem('userRole', assignedRole);
+          localStorage.setItem('isCurator', String(assignedCurator));
         }
       } else {
         console.warn('Falha na sincronização do perfil (API retornou erro).');
@@ -151,8 +156,7 @@ export default function Login() {
     try {
       // Usar loginRedirect em vez de loginPopup para evitar erros de bloqueio de popup e loops
       await instance.loginRedirect({
-        scopes: ["User.Read"],
-        prompt: "select_account"
+        scopes: ["User.Read"]
       });
       // O código para aqui pois a página é redirecionada para a Microsoft
     } catch (error: any) {

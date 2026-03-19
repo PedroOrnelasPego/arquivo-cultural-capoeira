@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   History, Search, PlusSquare, Tags, Plus, Pencil, Trash2, LayoutDashboard, 
   List, Info, Upload, Disc, ChevronRight, Music4, CheckCircle2, AlertCircle, X,
-  Music, Settings, Image as ImageIcon
+  Music, Settings, Image as ImageIcon, ShieldCheck, UserCircle, Bell, UserPlus, ShieldPlus
 } from 'lucide-react';
 
 import { categories } from '../data/mockData';
@@ -13,7 +13,41 @@ import { API_BASE_URL, API_KEY } from '../config';
 const FALLBACK_IMAGE = vinilPadrao;
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'new' | 'categories' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'new' | 'categories' | 'settings' | 'admin'>('overview');
+  const userEmail = localStorage.getItem('userEmail') || '';
+  const [currentUserRole, setCurrentUserRole] = useState(localStorage.getItem('userRole') || 'public');
+  const [isCuratorFlag, setIsCuratorFlag] = useState(localStorage.getItem('isCurator') === 'true');
+  
+  const isAdminManual = userEmail.toLowerCase() === 'contato@capoeiraminasbahia.com.br';
+
+  // Sincronização em Tempo Real das Permissões do Usuário atual
+  useEffect(() => {
+    const syncPermissions = async () => {
+      if (!userEmail) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/users`, {
+            headers: { 'x-api-key': API_KEY, 'x-user-email': userEmail }
+        });
+        if (res.ok) {
+           const users = await res.json();
+           const me = users.find((u: any) => u.email.toLowerCase() === userEmail.toLowerCase());
+           if (me) {
+              localStorage.setItem('userRole', me.role);
+              localStorage.setItem('isCurator', String(me.isCurator));
+              setCurrentUserRole(me.role);
+              setIsCuratorFlag(me.isCurator);
+           }
+        }
+      } catch (e) { console.error('Erro ao sincronizar permissões locais'); }
+    }
+    syncPermissions();
+  }, [userEmail]);
+
+  // Helpers de Permissão atualizados para suportar tanto os novos nomes quanto os legados
+  const canAdd = isAdminManual || ['curador-total', 'curador-add', 'editor', 'editor-add'].includes(currentUserRole);
+  const canEdit = isAdminManual || ['curador-total', 'curador-edit', 'editor', 'editor-edit'].includes(currentUserRole);
+  const canDelete = isAdminManual; 
+
   const [category, setCategory] = useState('vinil');
 
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
@@ -47,6 +81,93 @@ export default function Dashboard() {
 
   const handleDelete = (id: string, shortId: string) => {
     setDeleteConfirm({ id, shortId, visible: true });
+  };
+
+  const fetchCurators = async () => {
+    setIsAdminTabLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: { 
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCuratorsList(data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar curadores:', error);
+      showNotification('Falha ao carregar lista de curadores.', 'error');
+    } finally {
+      setIsAdminTabLoading(false);
+    }
+  };
+
+  const handleUpsertCurator = async (e?: React.FormEvent, emailOverride?: string, nameOverride?: string, roleOverride?: string) => {
+    if (e) e.preventDefault();
+    
+    const email = emailOverride || newCuratorEmail;
+    const role = roleOverride || newCuratorRole;
+    const name = nameOverride || newCuratorName;
+
+    if (!email || !role) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/curators`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
+        },
+        body: JSON.stringify({ email, name, role })
+      });
+
+      if (response.ok) {
+        showNotification('Permissões do curador atualizadas!');
+        if (!emailOverride) {
+          setNewCuratorEmail('');
+          setNewCuratorName('');
+        }
+        fetchCurators();
+      } else {
+        const err = await response.json();
+        showNotification(err.error || 'Erro ao salvar curador.', 'error');
+      }
+    } catch (error) {
+       showNotification('Falha de conexão com o servidor.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    const { id } = userDeleteConfirm;
+    setUserDeleteConfirm(prev => ({ ...prev, visible: false }));
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-api-key': API_KEY,
+          'x-user-email': localStorage.getItem('userEmail') || ''
+        }
+      });
+
+      if (response.ok) {
+        showNotification('Acesso especial revogado com sucesso!');
+        fetchCurators();
+      } else {
+        showNotification('Erro ao processar revogação de acesso.', 'error');
+      }
+    } catch (error) {
+       showNotification('Falha de conexão com o servidor.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -145,6 +266,26 @@ export default function Dashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<{id: string, shortId: string, visible: boolean}>({
     id: '',
     shortId: '',
+    visible: false
+  });
+
+  // Admin Tab States - Curator Management
+  const [curatorsList, setCuratorsList] = useState<any[]>([]);
+  const [curatorSearch, setCuratorSearch] = useState('');
+  const [newCuratorEmail, setNewCuratorEmail] = useState('');
+  const [newCuratorName, setNewCuratorName] = useState('');
+  const [newCuratorRole, setNewCuratorRole] = useState<'editor-add' | 'editor-edit' | 'editor' | 'public'>('editor');
+  const [isAdminTabLoading, setIsAdminTabLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'admin') {
+      fetchCurators();
+    }
+  }, [activeTab]);
+
+  const [userDeleteConfirm, setUserDeleteConfirm] = useState<{id: string, email: string, visible: boolean}>({
+    id: '',
+    email: '',
     visible: false
   });
 
@@ -307,7 +448,8 @@ export default function Dashboard() {
         const uploadRes = await fetch(`${API_BASE_URL}/api/uploads`, {
           method: 'POST',
           headers: {
-            'x-api-key': API_KEY
+            'x-api-key': API_KEY,
+            'x-user-email': localStorage.getItem('userEmail') || ''
           },
           body: formData
         });
@@ -605,7 +747,7 @@ export default function Dashboard() {
       {/* Header removed from here to SPA Layout */}
 
       {/* Admin Content Area matching the layout of Home */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24">
+      <main className="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-12 py-10 pb-24">
         
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 mb-8 text-sm">
@@ -625,9 +767,19 @@ export default function Dashboard() {
         <div className="flex flex-col lg:flex-row gap-8">
           
           {/* Quick Menu (Replaces old sidebar) */}
-          <aside className="w-full lg:w-64 shrink-0 flex flex-col gap-2">
+          <aside className="w-full lg:w-56 shrink-0 flex flex-col gap-2">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-2">Painel de Gestão</h3>
             
+                        {isAdminManual && (
+              <button 
+                onClick={() => setActiveTab('admin')}
+                className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold ${activeTab === 'admin' ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-slate-600 hover:bg-primary/5 hover:text-primary'}`}
+              >
+                <ShieldCheck className={`w-5 h-5 ${activeTab === 'admin' ? 'opacity-100' : 'opacity-40'}`} />
+                <span>Administrador</span>
+              </button>
+            )}
+
             <button 
               onClick={() => {
                 setActiveTab('overview');
@@ -639,32 +791,36 @@ export default function Dashboard() {
               <span>Visão Geral</span>
             </button>
             
-            <button 
-              onClick={() => {
-                setEditingId(null);
-                setTitle('');
-                setAuthor('');
-                setYear('');
-                setQuantity(1);
-                setDescription('');
-                setRecordLabel('');
-                setCoverImage(null);
-                setBackImage(null);
-                setInsertImage(null);
-                setRecordImage(null);
-                setExemplarsMedia([]);
-                setTracksA([{ id: Date.now(), side: 'A', name: '', artists: '', duration: '', audioFile: null }]);
-                setTracksB([]);
-                setTrackCountA('1');
-                setTrackCountB('0');
-                setActiveTab('new');
-              }}
-              className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold ${activeTab === 'new' && !editingId ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-slate-600 hover:bg-primary/5 hover:text-primary'}`}
-            >
-              <PlusSquare className={`w-5 h-5 ${activeTab === 'new' ? 'opacity-100' : 'opacity-40'}`} />
-              <span>Novo Cadastro</span>
-            </button>
+            {canAdd && (
+              <button 
+                onClick={() => {
+                  setEditingId(null);
+                  setTitle('');
+                  setAuthor('');
+                  setYear('');
+                  setQuantity(1);
+                  setDescription('');
+                  setRecordLabel('');
+                  setCoverImage(null);
+                  setBackImage(null);
+                  setInsertImage(null);
+                  setRecordImage(null);
+                  setExemplarsMedia([]);
+                  setTracksA([{ id: Date.now(), side: 'A', name: '', artists: '', duration: '', audioFile: null }]);
+                  setTracksB([]);
+                  setTrackCountA('1');
+                  setTrackCountB('0');
+                  setActiveTab('new');
+                }}
+                className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold ${activeTab === 'new' && !editingId ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-slate-600 hover:bg-primary/5 hover:text-primary'}`}
+              >
+                <PlusSquare className={`w-5 h-5 ${activeTab === 'new' ? 'opacity-100' : 'opacity-40'}`} />
+                <span>Novo Cadastro</span>
+              </button>
+            )}
             
+
+
             <button 
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold ${activeTab === 'settings' ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-slate-600 hover:bg-primary/5 hover:text-primary'}`}
@@ -732,18 +888,18 @@ export default function Dashboard() {
                         <option value="quantity">Qtd: Maior p/ Menor</option>
                       </select>
                       
-                      <div className="flex bg-slate-100 p-1 rounded-xl">
+                      <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-200 shadow-sm ml-auto">
                         <button 
                           onClick={() => setViewMode('grid')}
-                          className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
-                          title="Visualização Normal com Capas"
+                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white shadow-md text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                          title="Visualização em Grade"
                         >
                           <LayoutDashboard className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => setViewMode('list')}
-                          className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-slate-400 hover:text-slate-600'}`}
-                          title="Lista Compacta (Apenas Texto)"
+                          className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white shadow-md text-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                          title="Visualização em Lista"
                         >
                           <List className="w-4 h-4" />
                         </button>
@@ -751,16 +907,16 @@ export default function Dashboard() {
                       
                     </div>
                   </div>
-                  <div className="p-0 overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest">
-                          <th className="px-8 py-5">ID</th>
-                          <th className="px-8 py-5">Item</th>
-                          <th className="px-8 py-5">Categoria</th>
-                          <th className="px-8 py-5">Ano</th>
-                          <th className="px-8 py-5">Qtd</th>
-                          <th className="px-8 py-5 text-right">Ação</th>
+                  <div className="p-0 overflow-x-auto border border-slate-100 rounded-[2rem] max-h-[75vh] overflow-y-auto no-scrollbar relative shadow-inner bg-white">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
+                      <thead className="sticky top-0 z-30 bg-white border-b border-slate-200">
+                        <tr className="text-slate-400 text-[10px] uppercase font-black tracking-widest text-left">
+                          <th className="px-6 py-8 w-24">ID</th>
+                          <th className="px-6 py-8 w-auto">Item Catalografado</th>
+                          <th className="px-6 py-8 w-44">Categoria</th>
+                          <th className="px-6 py-8 w-24">Ano</th>
+                          <th className="px-6 py-8 w-16">Qtd</th>
+                          <th className="px-8 py-8 w-44 border-l border-slate-50 text-right bg-slate-50/10">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
@@ -774,52 +930,58 @@ export default function Dashboard() {
                         ) : filteredItems.length > 0 ? (
                           filteredItems.map((item) => (
                           <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} text-sm font-black text-slate-400 transition-all`}>#{item.shortId}</td>
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} transition-all`}>
+                            <td className="px-6 py-3 text-sm font-black text-slate-400 transition-all truncate">#{item.shortId}</td>
+                            <td className="px-6 py-3 transition-all truncate">
                               <div className="flex items-center gap-4">
                                 {viewMode === 'grid' && (
                                   <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 transition-all scale-100 origin-left">
                                     <img src={item.image || FALLBACK_IMAGE} alt={item.title} className="w-full h-full object-cover" />
                                   </div>
                                 )}
-                                <div className="flex flex-col justify-center">
+                                <div className="flex flex-col justify-center min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold text-slate-700 leading-tight">{item.title}</span>
+                                    <span className="text-sm font-bold text-slate-700 leading-tight truncate">{item.title}</span>
                                     {item.revised && (
                                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" title="Registro Revisado" />
                                     )}
                                   </div>
-                                  <span className="text-xs font-semibold text-slate-400">{item.author}</span>
+                                  <span className="text-xs font-semibold text-slate-400 truncate">{item.author}</span>
                                 </div>
                               </div>
                             </td>
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} transition-all whitespace-nowrap`}>
+                            <td className="px-6 py-3 transition-all whitespace-nowrap">
                               <span className="inline-flex items-center px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider w-max">
                                 {categoriesList.find(c => c.id === item.type)?.name || item.type}
                               </span>
                             </td>
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} text-sm font-semibold text-slate-500 transition-all`}>{item.year}</td>
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} text-sm font-black text-primary transition-all`}>
+                            <td className="px-6 py-3 text-sm font-semibold text-slate-500 transition-all">{item.year}</td>
+                            <td className="px-6 py-3 text-sm font-black text-primary transition-all">
                               {item.quantity || 1}
                             </td>
-                            <td className={`px-8 ${viewMode === 'grid' ? 'py-5' : 'py-3'} text-right transition-all`}>
-                              <div className="flex justify-end gap-2">
-                                <Link to={`/admin/record/${item.id}`} className="text-slate-400 hover:text-primary transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block">
-                                  <Search className="w-4 h-4" />
-                                </Link>
-                                <button 
-                                  onClick={() => loadForEdit(item)}
-                                  className="text-slate-400 hover:text-emerald-500 transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDelete(item.id, item.shortId)}
-                                  className="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
+                            <td className="px-8 py-3 text-right transition-all border-l border-slate-50/50 bg-slate-50/5 shadow-inner">
+                                <div className="flex items-center justify-end gap-2 flex-nowrap w-full">
+                                  <Link title="Visualizar Detalhes" to={`/admin/record/${item.id}`} className="text-slate-400 hover:text-primary transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block flex-shrink-0">
+                                    <Search className="w-4 h-4" />
+                                  </Link>
+                                  {canEdit && (
+                                    <button 
+                                      onClick={() => loadForEdit(item)}
+                                      title="Editar Cadastro"
+                                      className="text-slate-400 hover:text-emerald-500 transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block flex-shrink-0"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button 
+                                      onClick={() => handleDelete(item.id, item.shortId)}
+                                      title="Excluir Definitivamente"
+                                      className="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-lg shadow-sm hover:shadow-md inline-block flex-shrink-0"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
                             </td>
                           </tr>
                           ))
@@ -1499,6 +1661,164 @@ export default function Dashboard() {
                 </form>
               )}
 
+              {activeTab === 'admin' && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/40">
+                    <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/50">
+                      <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-3xl bg-primary shadow-xl shadow-primary/20 flex items-center justify-center text-white">
+                          <ShieldCheck className="w-8 h-8" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Painel de Controle</h3>
+                          <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Acesso Restrito: Curadoria e Governança de Dados</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 bg-white p-2 pl-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <UserPlus className="w-5 h-5 text-primary" />
+                        <div className="flex flex-col md:flex-row gap-3 items-center">
+                           <input 
+                              type="email" 
+                              value={newCuratorEmail}
+                              onChange={(e) => setNewCuratorEmail(e.target.value)}
+                              placeholder="E-mail para acesso..."
+                              className="w-full md:w-56 bg-transparent border-none focus:ring-0 text-sm font-bold placeholder:text-slate-300"
+                              required
+                           />
+                           <div className="h-8 w-[1px] bg-slate-100 hidden md:block"></div>
+                           <select 
+                              value={newCuratorRole}
+                              onChange={(e) => setNewCuratorRole(e.target.value as any)}
+                              className="bg-transparent border-none focus:ring-0 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary transition-colors"
+                           >
+                              <option value="editor-add">Apenas Inserir</option>
+                              <option value="editor-edit">Apenas Editar</option>
+                              <option value="editor">Inserir & Editar</option>
+                           </select>
+                           <button 
+                              onClick={handleUpsertCurator}
+                              disabled={isSubmitting || !newCuratorEmail}
+                              className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-xs hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                           >
+                             Liberar Acesso
+                           </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-10 space-y-8">
+                       <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                             <List className="w-5 h-5 text-slate-400" />
+                             <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Usuários Registrados ({curatorsList.length})</h4>
+                          </div>
+                          <div className="relative flex-1 max-w-[320px]">
+                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                             <input 
+                               type="text" 
+                               placeholder="Buscar por e-mail ou nome..."
+                               value={curatorSearch}
+                               onChange={(e) => setCuratorSearch(e.target.value)}
+                               className="w-full pl-11 pr-5 py-3 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                             />
+                          </div>
+                       </div>
+
+                       <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-inner">
+                           <div className="max-h-[600px] overflow-y-auto no-scrollbar">
+                               <table className="w-full text-left border-collapse">
+                                   <thead className="bg-slate-50 sticky top-0 z-10">
+                                       <tr>
+                                           <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificação do Usuário</th>
+                                           <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível de Permissão</th>
+                                           <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Controle</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody className="divide-y divide-slate-50">
+                                       {curatorsList
+                                         .filter(c => c.email.includes(curatorSearch.toLowerCase()) || (c.name || '').toLowerCase().includes(curatorSearch.toLowerCase()))
+                                         .map(user => (
+                                           <tr key={user.id} className="hover:bg-slate-50/40 transition-colors group">
+                                               <td className="px-10 py-6">
+                                                   <div className="flex items-center gap-4">
+                                                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                                                          <UserCircle className="w-6 h-6" />
+                                                       </div>
+                                                       <div className="flex flex-col">
+                                                           <span className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{user.email}</span>
+                                                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user.name || 'Pendente de Login via Microsoft'}</span>
+                                                       </div>
+                                                   </div>
+                                               </td>
+                                               <td className="px-10 py-6">
+                                                   {user.role === 'admin' ? (
+                                                      <span className="px-4 py-1.5 bg-red-50 text-red-500 text-[10px] font-black rounded-lg uppercase tracking-widest border border-red-100">
+                                                         Administrador Mestre
+                                                      </span>
+                                                   ) : (
+                                                      <div className="flex items-center gap-4">
+                                                              <button 
+                                                                onClick={() => {
+                                                                   const newStatus = !user.isCurator;
+                                                                   handleUpsertCurator(null as any, user.email, user.name, newStatus ? 'curador-add' : 'public');
+                                                                }}
+                                                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                                                   user.isCurator 
+                                                                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                                                                   : 'bg-white text-slate-400 border-slate-200 hover:border-primary hover:text-primary'
+                                                                }`}
+                                                              >
+                                                                {user.isCurator ? 'Curador Ativo' : 'Tornar Curador'}
+                                                              </button>
+
+                                                              {user.isCurator && (
+                                                                 <select 
+                                                                    value={user.role}
+                                                                    onChange={(e) => {
+                                                                       handleUpsertCurator(null as any, user.email, user.name, e.target.value);
+                                                                    }}
+                                                                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-white transition-all animate-in slide-in-from-left-2"
+                                                                 >
+                                                                    <option value="curador-add">Apenas Inserir</option>
+                                                                    <option value="curador-edit">Apenas Editar</option>
+                                                                    <option value="curador-total">Inserir & Editar</option>
+                                                                 </select>
+                                                              )}
+                                                      </div>
+                                                   )}
+                                               </td>
+                                               <td className="px-10 py-6 text-right">
+                                                   {user.role !== 'admin' && (
+                                                       <button 
+                                                           onClick={() => setUserDeleteConfirm({ id: user.id, email: user.email, visible: true })}
+                                                           className="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                                                       >
+                                                           <Trash2 className="w-5 h-5" />
+                                                       </button>
+                                                   )}
+                                               </td>
+                                           </tr>
+                                       ))}
+                                       {curatorsList.length === 0 && !isAdminTabLoading && (
+                                           <tr>
+                                               <td colSpan={3} className="px-10 py-32 text-center">
+                                                   <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                                      <UserCircle className="w-8 h-8 text-slate-300" />
+                                                   </div>
+                                                   <p className="text-slate-400 font-bold text-sm tracking-tight">Nenhum usuário encontrado no sistema.</p>
+                                               </td>
+                                           </tr>
+                                       )}
+                                   </tbody>
+                               </table>
+                           </div>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'settings' && (
                 <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-2xl shadow-slate-200/40 p-8 text-center text-slate-500">
                   <p>Ajustes do Sistema em construção.</p>
@@ -1593,6 +1913,35 @@ export default function Dashboard() {
                 {isSubmitting ? (
                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : 'Apagar da Nuvem'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Confirmação Deleção de Acesso Usuário */}
+      {userDeleteConfirm.visible && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center text-red-500 mx-auto mb-8">
+              <AlertCircle className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 text-center uppercase tracking-tight mb-4">Revogar Acesso?</h3>
+            <p className="text-slate-500 text-center font-semibold mb-10">
+              O acesso especial de <span className="text-slate-900 font-bold">{userDeleteConfirm.email}</span> será removido. 
+              O usuário continuará registrado no sistema, mas com permissão de apenas visualização pública.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setUserDeleteConfirm(prev => ({ ...prev, visible: false }))}
+                className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteUser}
+                className="py-4 bg-red-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-red-500/30 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                Confirmar
               </button>
             </div>
           </div>

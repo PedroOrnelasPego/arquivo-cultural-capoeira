@@ -2,6 +2,7 @@ import { History, Search, Bell, UserCircle, Menu, X, Sun, Moon } from 'lucide-re
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
+import { ADMIN_EMAIL } from '../config';
 
 export default function Navbar() {
   const { instance, accounts } = useMsal();
@@ -26,10 +27,18 @@ export default function Navbar() {
 
   // Sincroniza informações: MSAL (prioridade) + LocalStorage
   const role = localStorage.getItem('userRole');
+  const isCuratorFlag = localStorage.getItem('isCurator') === 'true';
   const account = accounts[0];
   const userName = account?.name || localStorage.getItem('userName') || 'Usuário';
   const userEmail = account?.username || localStorage.getItem('userEmail') || '';
-  const isAdminOrEditor = role === 'admin' || role === 'editor' || isAuthenticated;
+  const isAdmin = userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  
+  // Decide se mostra a badge administrativa
+  let badgeLabel = '';
+  if (isAdmin || role === 'admin') badgeLabel = 'ADMINISTRADOR';
+  else if (isCuratorFlag) badgeLabel = 'MODERADOR';
+
+  const isAdminOrEditor = role === 'admin' || isCuratorFlag || isAdmin || (role && role.startsWith('curador-'));
 
   // Theme support
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -54,9 +63,8 @@ export default function Navbar() {
     
     // Se estiver logado via MSAL, faz o logout completo
     if (isAuthenticated) {
-      instance.logoutPopup({
-        postLogoutRedirectUri: "/",
-        mainWindowRedirectUri: "/"
+      instance.logoutRedirect({
+        postLogoutRedirectUri: window.location.origin,
       });
     } else {
       window.location.href = '/';
@@ -92,7 +100,11 @@ export default function Navbar() {
                 <span className="text-sm font-bold text-slate-900 leading-tight">{userName}</span>
                 <span className="text-[10px] text-slate-400 font-medium">{userEmail}</span>
               </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">{role || 'MODERADOR'}</span>
+              {badgeLabel && (
+                <span className="text-[10px] font-black text-white uppercase tracking-widest px-3 py-1 bg-primary dark:bg-primary rounded-full shadow-lg shadow-primary/20 transition-all">
+                  {badgeLabel}
+                </span>
+              )}
               <button 
                 onClick={toggleTheme} 
                 className="p-2.5 rounded-full border-2 border-slate-200 text-slate-500 hover:bg-slate-100 transition-all dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"

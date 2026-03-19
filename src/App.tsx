@@ -29,7 +29,14 @@ export default function App() {
             } 
           />
           <Route path="/record/:id" element={<Record />} />
-          <Route path="/admin/record/:id" element={<Record />} />
+          <Route 
+            path="/admin/record/:id" 
+            element={
+              <ProtectedRoute>
+                <Record />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
